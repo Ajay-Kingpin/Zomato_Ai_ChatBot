@@ -39,7 +39,7 @@ def _build_restaurant_summary(df: pd.DataFrame, max_rows: int = MAX_RESTAURANTS_
         if "rate" in row:
             parts.append(f"Rating: {row['rate']}")
         if "approx_cost(for two people)" in row:
-            parts.append(f"Cost for two: ₹{row['approx_cost(for two people)']}")
+            parts.append(f"Cost for two: Rs.{row['approx_cost(for two people)']}")
         if "cuisines" in row and pd.notna(row["cuisines"]):
             parts.append(f"Cuisines: {row['cuisines']}")
         if "dish_liked" in row and pd.notna(row["dish_liked"]):
@@ -57,7 +57,7 @@ def _build_prompt(context: IntegrationContext) -> str:
 
 User preferences:
 - City/Area: {ui.city}
-- Budget (approx for two): ₹{ui.price}
+- Budget (approx for two): Rs.{ui.price}
 - Diet: {ui.diet}
 
 Matching restaurants:

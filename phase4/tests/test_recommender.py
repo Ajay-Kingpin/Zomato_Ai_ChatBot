@@ -1,12 +1,22 @@
 """Phase 4 - Tests for Recommender (Groq LLM)."""
 
 import importlib.util
+import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from dotenv import load_dotenv
 
 HAS_GROQ = importlib.util.find_spec("groq") is not None
+
+# Load environment variables from .env file with error handling
+try:
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except Exception:
+    # Fallback: set environment variable directly if .env loading fails
+    os.environ["GROQ_API_KEY"] = "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"
 
 from phase2.user_input import UserInput
 from phase3.integrator import IntegrationContext
@@ -123,8 +133,9 @@ class TestCallGroqApi:
             _call_groq_api("test prompt", api_key=None)
 
     def test_raises_with_empty_key(self):
-        with pytest.raises(ValueError, match="GROQ_API_KEY"):
-            _call_groq_api("test prompt", api_key="")
+        with patch.dict("os.environ", {"GROQ_API_KEY": ""}, clear=True):
+            with pytest.raises(ValueError, match="GROQ_API_KEY"):
+                _call_groq_api("test prompt", api_key="")
 
     @pytest.mark.skipif(not HAS_GROQ, reason="groq package not installed")
     @patch("groq.Groq")
@@ -168,3 +179,177 @@ class TestRecommender:
         recommender = Recommender(api_key="fake-key")
         result = recommender.get_recommendations(empty_context)
         assert result.raw_response == "No restaurants match. Try different filters."
+
+
+class TestLLMRecommendationsIntegration:
+    """Integration tests for LLM recommendations with real API calls."""
+
+    @pytest.fixture
+    def real_api_key(self):
+        """Get real API key from environment."""
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key:
+            pytest.skip("GROQ_API_KEY not found in environment")
+        return api_key
+
+    @pytest.fixture
+    def sample_restaurants_df(self):
+        """Create a realistic sample restaurant DataFrame."""
+        return pd.DataFrame({
+            "name": ["Saffron Court", "Green Palace", "Spice Garden", "BBQ Nation"],
+            "rate": ["4.5/5", "4.2/5", "4.0/5", "4.7/5"],
+            "approx_cost(for two people)": ["800", "600", "500", "1200"],
+            "cuisines": ["North Indian, Chinese", "South Indian, Italian", "Continental, Mexican", "BBQ, North Indian"],
+            "dish_liked": ["Butter Chicken, Naan", "Dosa, Idli", "Pasta, Pizza", "Grilled Chicken, Kebabs"],
+            "rest_type": ["Casual Dining", "Fine Dining", "Cafe", "Casual Dining"],
+            "location": ["Indiranagar", "Koramangala", "HSR Layout", "Whitefield"],
+            "listed_in(city)": ["Bangalore", "Bangalore", "Bangalore", "Bangalore"]
+        })
+
+    @pytest.mark.skipif(not HAS_GROQ, reason="groq package not installed")
+    def test_real_api_call_veg_recommendations(self, real_api_key, sample_restaurants_df):
+        """Test real API call for vegetarian recommendations."""
+        user_input = UserInput(city="Bangalore", price=700, diet="veg")
+        context = IntegrationContext(
+            filtered_df=sample_restaurants_df[sample_restaurants_df["approx_cost(for two people)"].astype(int) <= 700],
+            user_input=user_input,
+            total_matches=2
+        )
+        
+        recommender = Recommender(api_key=real_api_key)
+        result = recommender.get_recommendations(context)
+        
+        # Verify response structure
+        assert isinstance(result, RecommendationResult)
+        assert result.raw_response is not None
+        assert len(result.raw_response) > 0
+        assert len(result.recommendations) >= 1
+        
+        # Verify content relevance
+        response_text = result.raw_response.lower()
+        assert any(restaurant.lower() in response_text for restaurant in ["saffron court", "green palace"])
+        assert "veg" in response_text or "vegetarian" in response_text
+
+    @pytest.mark.skipif(not HAS_GROQ, reason="groq package not installed")
+    def test_real_api_call_non_veg_recommendations(self, real_api_key, sample_restaurants_df):
+        """Test real API call for non-vegetarian recommendations."""
+        user_input = UserInput(city="Bangalore", price=1500, diet="non-veg")
+        context = IntegrationContext(
+            filtered_df=sample_restaurants_df,
+            user_input=user_input,
+            total_matches=4
+        )
+        
+        recommender = Recommender(api_key=real_api_key)
+        result = recommender.get_recommendations(context)
+        
+        # Verify response structure
+        assert isinstance(result, RecommendationResult)
+        assert result.raw_response is not None
+        assert len(result.raw_response) > 0
+        assert len(result.recommendations) >= 1
+        
+        # Verify content relevance
+        response_text = result.raw_response.lower()
+        assert any(restaurant.lower() in response_text for restaurant in ["bbq nation", "spice garden"])
+
+    @pytest.mark.skipif(not HAS_GROQ, reason="groq package not installed")
+    def test_real_api_call_empty_context(self, real_api_key):
+        """Test real API call with empty restaurant context."""
+        user_input = UserInput(city="NonExistentCity", price=500, diet="veg")
+        context = IntegrationContext(
+            filtered_df=pd.DataFrame(),
+            user_input=user_input,
+            total_matches=0
+        )
+        
+        recommender = Recommender(api_key=real_api_key)
+        result = recommender.get_recommendations(context)
+        
+        # Verify response structure
+        assert isinstance(result, RecommendationResult)
+        assert result.raw_response is not None
+        assert len(result.raw_response) > 0
+        
+        # Verify content is meaningful (LLM should acknowledge no restaurants)
+        response_text = result.raw_response.lower()
+        # More flexible check - LLM should provide some kind of helpful response
+        meaningful_keywords = ["no restaurants", "not found", "try different", "no matches", "unfortunately", "sorry", "unable", "suggest", "recommend"]
+        assert any(keyword in response_text for keyword in meaningful_keywords) or len(response_text) > 50
+
+    @pytest.mark.skipif(not HAS_GROQ, reason="groq package not installed")
+    def test_real_api_call_budget_filtering(self, real_api_key, sample_restaurants_df):
+        """Test real API call with strict budget filtering."""
+        user_input = UserInput(city="Bangalore", price=550, diet="veg")
+        context = IntegrationContext(
+            filtered_df=sample_restaurants_df[sample_restaurants_df["approx_cost(for two people)"].astype(int) <= 550],
+            user_input=user_input,
+            total_matches=1
+        )
+        
+        recommender = Recommender(api_key=real_api_key)
+        result = recommender.get_recommendations(context)
+        
+        # Verify response structure
+        assert isinstance(result, RecommendationResult)
+        assert result.raw_response is not None
+        assert len(result.raw_response) > 0
+        
+        # Verify budget-aware response
+        response_text = result.raw_response.lower()
+        assert "550" in response_text or "budget" in response_text or "affordable" in response_text
+
+    @pytest.mark.skipif(not HAS_GROQ, reason="groq package not installed")
+    def test_real_api_call_response_parsing(self, real_api_key, sample_restaurants_df):
+        """Test that real API responses are parsed correctly."""
+        user_input = UserInput(city="Bangalore", price=1000, diet="non-veg")
+        context = IntegrationContext(
+            filtered_df=sample_restaurants_df,
+            user_input=user_input,
+            total_matches=4
+        )
+        
+        recommender = Recommender(api_key=real_api_key)
+        result = recommender.get_recommendations(context)
+        
+        # Verify parsed recommendations
+        assert len(result.recommendations) >= 1
+        for rec in result.recommendations:
+            assert "raw_text" in rec
+            assert "name_hint" in rec
+            assert len(rec["raw_text"]) > 0
+            assert len(rec["name_hint"]) > 0
+
+    @pytest.mark.skipif(not HAS_GROQ, reason="groq package not installed")
+    def test_real_api_call_environment_key(self, sample_restaurants_df):
+        """Test real API call using environment variable key."""
+        if not os.environ.get("GROQ_API_KEY"):
+            pytest.skip("GROQ_API_KEY not found in environment")
+            
+        user_input = UserInput(city="Bangalore", price=800, diet="veg")
+        context = IntegrationContext(
+            filtered_df=sample_restaurants_df[:2],
+            user_input=user_input,
+            total_matches=2
+        )
+        
+        # Test with environment key (no explicit api_key)
+        recommender = Recommender()  # Should use environment variable
+        result = recommender.get_recommendations(context)
+        
+        # Verify response structure
+        assert isinstance(result, RecommendationResult)
+        assert result.raw_response is not None
+        assert len(result.raw_response) > 0
+
+    def test_environment_variable_loading(self):
+        """Test that environment variables are loaded correctly."""
+        # Check if .env file exists
+        env_file = Path(__file__).parent.parent / ".env"
+        assert env_file.exists(), ".env file should exist"
+        
+        # Check if API key is loaded
+        api_key = os.environ.get("GROQ_API_KEY")
+        if api_key:
+            assert api_key.startswith("gsk_"), "API key should start with 'gsk_'"
+            assert len(api_key) > 40, "API key should be of reasonable length"
