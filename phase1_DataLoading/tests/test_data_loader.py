@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from phase1.data_loader import ZomatoDataLoader, EXPECTED_COLUMNS
+from phase1_DataLoading.data_loader import ZomatoDataLoader, EXPECTED_COLUMNS
 
 
 @pytest.fixture

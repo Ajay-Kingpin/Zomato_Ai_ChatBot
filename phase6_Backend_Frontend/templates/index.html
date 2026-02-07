@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zomato AI Restaurant Recommendation System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .recommendation-card {
+            transition: all 0.3s ease;
+        }
+        .recommendation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-orange-50 to-red-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-utensils text-orange-500 text-3xl"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Zomato AI Recommendation System</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600">Powered by AI</span>
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Section -->
+        <section id="stats-section" class="mb-8 fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                    <i class="fas fa-database text-blue-500 text-2xl mb-2"></i>
+                    <h3 class="text-lg font-semibold text-gray-700">Total Restaurants</h3>
+                    <p id="total-restaurants" class="text-2xl font-bold text-blue-600">Loading...</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                    <i class="fas fa-map-marker-alt text-green-500 text-2xl mb-2"></i>
+                    <h3 class="text-lg font-semibold text-gray-700">Available Cities</h3>
+                    <p id="available-cities" class="text-2xl font-bold text-green-600">Loading...</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                    <i class="fas fa-filter text-purple-500 text-2xl mb-2"></i>
+                    <h3 class="text-lg font-semibold text-gray-700">Data Columns</h3>
+                    <p id="data-columns" class="text-2xl font-bold text-purple-600">Loading...</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 text-center">
+                    <i class="fas fa-robot text-orange-500 text-2xl mb-2"></i>
+                    <h3 class="text-lg font-semibold text-gray-700">AI Model</h3>
+                    <p class="text-lg font-bold text-orange-600">Llama 3.1</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Input Form -->
+        <section class="bg-white rounded-lg shadow-lg p-8 mb-8 fade-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+                <i class="fas fa-search text-orange-500 mr-2"></i>
+                Find Your Perfect Restaurant
+            </h2>
+            
+            <form id="recommendation-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- City Input -->
+                    <div>
+                        <label for="city" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            City/Area
+                        </label>
+                        <input 
+                            type="text" 
+                            id="city" 
+                            name="city" 
+                            required
+                            placeholder="e.g., Bangalore, Delhi, Mumbai"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200"
+                        >
+                        <div id="city-suggestions" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-40 overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Budget Input -->
+                    <div>
+                        <label for="price" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-rupee-sign mr-1"></i>
+                            Budget for Two People
+                        </label>
+                        <input 
+                            type="number" 
+                            id="price" 
+                            name="price" 
+                            required
+                            min="100"
+                            max="10000"
+                            placeholder="e.g., 800"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200"
+                        >
+                    </div>
+
+                    <!-- Diet Input -->
+                    <div>
+                        <label for="diet" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-leaf mr-1"></i>
+                            Dietary Preference
+                        </label>
+                        <select 
+                            id="diet" 
+                            name="diet" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition duration-200"
+                        >
+                            <option value="">Select preference</option>
+                            <option value="veg">Vegetarian</option>
+                            <option value="non-veg">Non-Vegetarian</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center">
+                    <button 
+                        type="submit" 
+                        id="submit-btn"
+                        class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                    >
+                        <i class="fas fa-magic mr-2"></i>
+                        Get AI Recommendations
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Loading State -->
+        <section id="loading-section" class="hidden">
+            <div class="text-center py-12">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-lg text-gray-600">AI is analyzing restaurants for you...</p>
+                <p class="text-sm text-gray-500 mt-2">This usually takes 2-3 seconds</p>
+            </div>
+        </section>
+
+        <!-- Error Section -->
+        <section id="error-section" class="hidden">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
+                <h3 class="text-lg font-semibold text-red-800 mb-2">Oops! Something went wrong</h3>
+                <p id="error-message" class="text-red-600"></p>
+                <button onclick="resetForm()" class="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                    <i class="fas fa-redo mr-2"></i>
+                    Try Again
+                </button>
+            </div>
+        </section>
+
+        <!-- Recommendations Section -->
+        <section id="recommendations-section" class="hidden">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+                    <i class="fas fa-star text-yellow-500 mr-2"></i>
+                    AI Restaurant Recommendations
+                </h2>
+                <div id="recommendations-content" class="space-y-6">
+                    <!-- Recommendations will be inserted here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <div class="flex items-center justify-center space-x-2 mb-4">
+                <i class="fas fa-utensils text-orange-400"></i>
+                <span class="text-lg font-semibold">Zomato AI Recommendation System</span>
+            </div>
+            <p class="text-gray-400">Powered by Llama 3.1 AI Model</p>
+            <p class="text-sm text-gray-500 mt-2">© 2024 - Built with Flask, Tailwind CSS, and AI</p>
+        </div>
+    </footer>
+
+    <script>
+        let cities = [];
+        let isLoading = false;
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadCities();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            const form = document.getElementById('recommendation-form');
+            const cityInput = document.getElementById('city');
+            
+            form.addEventListener('submit', handleFormSubmit);
+            cityInput.addEventListener('input', handleCityInput);
+            cityInput.addEventListener('focus', showCitySuggestions);
+            document.addEventListener('click', hideCitySuggestions);
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('total-restaurants').textContent = 
+                    data.total_restaurants.toLocaleString();
+                document.getElementById('available-cities').textContent = 
+                    data.available_cities.toLocaleString();
+                document.getElementById('data-columns').textContent = 
+                    data.columns.length;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadCities() {
+            try {
+                const response = await fetch('/api/cities');
+                const data = await response.json();
+                cities = data.cities;
+            } catch (error) {
+                console.error('Failed to load cities:', error);
+            }
+        }
+
+        function handleCityInput(event) {
+            const value = event.target.value.toLowerCase();
+            const suggestionsDiv = document.getElementById('city-suggestions');
+            
+            if (value.length < 2) {
+                suggestionsDiv.classList.add('hidden');
+                return;
+            }
+
+            const filteredCities = cities.filter(city => 
+                city.toLowerCase().includes(value)
+            ).slice(0, 5);
+
+            if (filteredCities.length > 0) {
+                suggestionsDiv.innerHTML = filteredCities.map(city => 
+                    `<div class="px-4 py-2 hover:bg-orange-50 cursor-pointer" onclick="selectCity('${city}')">${city}</div>`
+                ).join('');
+                suggestionsDiv.classList.remove('hidden');
+            } else {
+                suggestionsDiv.classList.add('hidden');
+            }
+        }
+
+        function selectCity(city) {
+            document.getElementById('city').value = city;
+            document.getElementById('city-suggestions').classList.add('hidden');
+        }
+
+        function showCitySuggestions() {
+            const value = document.getElementById('city').value;
+            if (value.length >= 2) {
+                handleCityInput({ target: { value } });
+            }
+        }
+
+        function hideCitySuggestions(event) {
+            if (!event.target.closest('#city-suggestions') && 
+                !event.target.closest('#city')) {
+                document.getElementById('city-suggestions').classList.add('hidden');
+            }
+        }
+
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            if (isLoading) return;
+            
+            const formData = new FormData(event.target);
+            const data = {
+                city: formData.get('city').trim(),
+                price: formData.get('price'),
+                diet: formData.get('diet')
+            };
+
+            // Basic validation
+            if (!data.city || !data.price || !data.diet) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/recommendations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showRecommendations(result.recommendations, data);
+                } else {
+                    showError(result.error || 'Failed to get recommendations');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showLoading() {
+            isLoading = true;
+            document.getElementById('loading-section').classList.remove('hidden');
+            document.getElementById('error-section').classList.add('hidden');
+            document.getElementById('recommendations-section').classList.add('hidden');
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('submit-btn').innerHTML = 
+                '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+        }
+
+        function hideLoading() {
+            isLoading = false;
+            document.getElementById('loading-section').classList.add('hidden');
+            document.getElementById('submit-btn').disabled = false;
+            document.getElementById('submit-btn').innerHTML = 
+                '<i class="fas fa-magic mr-2"></i>Get AI Recommendations';
+        }
+
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-section').classList.remove('hidden');
+            document.getElementById('recommendations-section').classList.add('hidden');
+        }
+
+        function showRecommendations(recommendations, input) {
+            const content = document.getElementById('recommendations-content');
+            
+            // Convert plain text recommendations to HTML
+            const htmlContent = recommendations
+                .replace(/╔/g, '<div class="border-t-2 border-l-2 border-r-2 border-gray-300">')
+                .replace(/╚/g, '</div>')
+                .replace(/╗/g, '')
+                .replace(/═/g, '')
+                .replace(/║/g, '')
+                .replace(/┌/g, '<div class="border border-gray-300 rounded-lg p-4 mb-4 recommendation-card">')
+                .replace(/┐/g, '</div>')
+                .replace(/├/g, '<div class="border-b border-gray-300">')
+                .replace(/┤/g, '</div>')
+                .replace(/└/g, '<div class="border-b border-l border-r border-gray-300">')
+                .replace(/┘/g, '</div>')
+                .replace(/\n/g, '<br>')
+                .replace(/RECOMMENDATION/g, '<span class="font-bold text-orange-600">RECOMMENDATION</span>')
+                .replace(/Location:/g, '<i class="fas fa-map-marker-alt text-gray-500 mr-1"></i><strong>Location:</strong>')
+                .replace(/Budget:/g, '<i class="fas fa-rupee-sign text-gray-500 mr-1"></i><strong>Budget:</strong>')
+                .replace(/Diet:/g, '<i class="fas fa-leaf text-gray-500 mr-1"></i><strong>Diet:</strong>');
+
+            content.innerHTML = `<div class="prose max-w-none">${htmlContent}</div>`;
+            document.getElementById('recommendations-section').classList.remove('hidden');
+            document.getElementById('error-section').classList.add('hidden');
+            
+            // Scroll to recommendations
+            document.getElementById('recommendations-section').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('recommendation-form').reset();
+            document.getElementById('error-section').classList.add('hidden');
+            document.getElementById('recommendations-section').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

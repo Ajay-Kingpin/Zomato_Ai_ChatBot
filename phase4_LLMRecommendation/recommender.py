@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from phase3.integrator import IntegrationContext
+from phase3_Integration.integrator import IntegrationContext
 
 GROQ_MODEL = "llama-3.1-8b-instant"
 MAX_RESTAURANTS_IN_PROMPT = 50

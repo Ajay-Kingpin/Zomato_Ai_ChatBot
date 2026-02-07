@@ -5,13 +5,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from phase2.user_input import UserInput
-from phase3.integrator import (
-    IntegrationContext,
-    Integrator,
-    _has_non_veg_content,
-    _parse_cost,
-)
+from phase2_UserInput.user_input import UserInput
+from phase3_Integration.integrator import IntegrationContext, Integrator, _has_non_veg_content, _parse_cost
 
 
 @pytest.fixture

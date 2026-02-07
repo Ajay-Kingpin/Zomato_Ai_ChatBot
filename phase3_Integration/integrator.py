@@ -9,7 +9,7 @@ from typing import Any
 
 import pandas as pd
 
-from phase2.user_input import UserInput
+from phase2_UserInput.user_input import UserInput
 
 CITY_COL = "listed_in(city)"
 PRICE_COL = "approx_cost(for two people)"

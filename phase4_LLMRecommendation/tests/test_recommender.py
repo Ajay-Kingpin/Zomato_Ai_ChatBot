@@ -18,9 +18,9 @@ except Exception:
     # Fallback: set environment variable directly if .env loading fails
     os.environ["GROQ_API_KEY"] = "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"
 
-from phase2.user_input import UserInput
-from phase3.integrator import IntegrationContext
-from phase4.recommender import (
+from phase2_UserInput.user_input import UserInput
+from phase3_Integration.integrator import IntegrationContext
+from phase4_LLMRecommendation.recommender import (
     MAX_RESTAURANTS_IN_PROMPT,
     RecommendationResult,
     Recommender,
@@ -154,7 +154,7 @@ class TestCallGroqApi:
 class TestRecommender:
     """Tests for Recommender class (mocked Groq API)."""
 
-    @patch("phase4.recommender._call_groq_api")
+    @patch("phase4_LLMRecommendation.recommender._call_groq_api")
     def test_get_recommendations_returns_result(self, mock_call, sample_context):
         mock_call.return_value = "1. Restaurant A - Great choice for veg food."
         recommender = Recommender(api_key="fake-key")
@@ -163,7 +163,7 @@ class TestRecommender:
         assert result.raw_response == "1. Restaurant A - Great choice for veg food."
         assert len(result.recommendations) >= 1
 
-    @patch("phase4.recommender._call_groq_api")
+    @patch("phase4_LLMRecommendation.recommender._call_groq_api")
     def test_get_recommendations_calls_api_with_prompt(self, mock_call, sample_context):
         mock_call.return_value = "Recommendation text"
         recommender = Recommender(api_key="fake-key")
@@ -173,7 +173,7 @@ class TestRecommender:
         assert "Banashankari" in call_args[0][0]
         assert "600" in call_args[0][0]
 
-    @patch("phase4.recommender._call_groq_api")
+    @patch("phase4_LLMRecommendation.recommender._call_groq_api")
     def test_get_recommendations_with_empty_context(self, mock_call, empty_context):
         mock_call.return_value = "No restaurants match. Try different filters."
         recommender = Recommender(api_key="fake-key")

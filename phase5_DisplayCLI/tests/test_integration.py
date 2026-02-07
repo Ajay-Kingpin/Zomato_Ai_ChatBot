@@ -3,13 +3,14 @@
 import os
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-
-import pandas as pd
 import pytest
-from dotenv import load_dotenv
-
-# Add project root to Python path
+from unittest.mock import patch
+import pandas as pd
+from phase1_DataLoading.data_loader import ZomatoDataLoader
+from phase2_UserInput.user_input import UserInput, UserInputHandler
+from phase3_Integration.integrator import Integrator
+from phase4_LLMRecommendation.recommender import Recommender
+from phase5_DisplayCLI.display import RecommendationDisplay
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -19,7 +20,7 @@ try:
 except Exception:
     os.environ["GROQ_API_KEY"] = "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"
 
-from phase5.main import ZomatoRecommendationApp
+from phase5_DisplayCLI.main import ZomatoRecommendationApp
 
 
 @pytest.fixture
@@ -47,7 +48,7 @@ def sample_app():
     })
     
     # Create app with mocked data loading
-    with patch('phase5.main.ZomatoRecommendationApp._load_data'):
+    with patch('phase5_DisplayCLI.main.ZomatoRecommendationApp._load_data'):
         app = ZomatoRecommendationApp()
         app.data = sample_data
         # Also set the data in the data_loader to avoid the RuntimeError

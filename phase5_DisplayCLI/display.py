@@ -6,8 +6,8 @@ Formats and displays restaurant recommendations to the user.
 from typing import List, Dict, Any
 import pandas as pd
 
-from phase2.user_input import UserInput
-from phase4.recommender import RecommendationResult
+from phase2_UserInput.user_input import UserInput
+from phase4_LLMRecommendation.recommender import RecommendationResult
 
 
 class RecommendationDisplay:

@@ -2,7 +2,7 @@
 
 import pytest
 
-from phase2.user_input import UserInput, UserInputHandler
+from phase2_UserInput.user_input import UserInput, UserInputHandler
 
 
 class TestUserInputHandlerValidateCity:

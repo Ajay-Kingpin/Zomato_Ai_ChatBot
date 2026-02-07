@@ -21,11 +21,11 @@ except Exception:
     os.environ["GROQ_API_KEY"] = "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"
 
 import pandas as pd
-from phase1.data_loader import ZomatoDataLoader
-from phase2.user_input import UserInput, UserInputHandler
-from phase3.integrator import Integrator
-from phase4.recommender import Recommender
-from phase5.display import RecommendationDisplay
+from phase1_DataLoading.data_loader import ZomatoDataLoader
+from phase2_UserInput.user_input import UserInput, UserInputHandler
+from phase3_Integration.integrator import Integrator
+from phase4_LLMRecommendation.recommender import Recommender
+from phase5_DisplayCLI.display import RecommendationDisplay
 
 
 class ZomatoRecommendationApp:
